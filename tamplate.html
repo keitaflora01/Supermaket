@@ -1,0 +1,1247 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>supermaket – Approvisionnement Supermarché</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            display: ['Syne', 'sans-serif'],
+            body: ['DM Sans', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              50:  '#f0fdf6',
+              100: '#dcfce9',
+              500: '#16a34a',
+              600: '#15803d',
+              700: '#166534',
+              900: '#052e16',
+            },
+            surface: {
+              50:  '#f8fafc',
+              100: '#f1f5f9',
+              200: '#e2e8f0',
+              800: '#1e293b',
+              900: '#0f172a',
+              950: '#020617',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { font-family: 'DM Sans', sans-serif; }
+    h1,h2,h3,h4,.font-display { font-family: 'Syne', sans-serif; }
+
+    /* Sidebar active */
+    .nav-item.active {
+      background: linear-gradient(135deg, #16a34a22, #16a34a11);
+      border-left: 3px solid #16a34a;
+      color: #16a34a;
+    }
+    .nav-item:not(.active):hover {
+      background: #1e293b;
+      color: #cbd5e1;
+    }
+
+    /* Modal overlay */
+    .modal-overlay { display:none; }
+    .modal-overlay.open { display:flex; }
+
+    /* Status badges */
+    .badge-pending   { background:#fef9c3; color:#854d0e; }
+    .badge-confirmed { background:#dbeafe; color:#1e40af; }
+    .badge-received  { background:#dcfce7; color:#166534; }
+    .badge-cancelled { background:#fee2e2; color:#991b1b; }
+
+    /* Subtle card hover */
+    .card-hover { transition: box-shadow .2s, transform .2s; }
+    .card-hover:hover { box-shadow: 0 8px 30px #0002; transform: translateY(-2px); }
+
+    /* Table row hover */
+    tr.row-hover:hover td { background:#f0fdf6; }
+
+    /* Scrollbar slim */
+    ::-webkit-scrollbar { width:5px; }
+    ::-webkit-scrollbar-track { background:#f1f5f9; }
+    ::-webkit-scrollbar-thumb { background:#cbd5e1; border-radius:99px; }
+
+    /* Animated dot */
+    @keyframes pulse-dot { 0%,100%{opacity:1} 50%{opacity:.4} }
+    .dot-anim { animation: pulse-dot 1.8s infinite; }
+
+    /* Sidebar */
+    #sidebar { transition: width .3s; }
+  </style>
+</head>
+<body class="bg-surface-100 text-surface-800 min-h-screen flex">
+
+<!-- ══════════════════ SIDEBAR ══════════════════ -->
+<aside id="sidebar" class="w-64 bg-surface-900 text-slate-300 flex flex-col min-h-screen fixed z-30 top-0 left-0">
+
+  <!-- Logo -->
+  <div class="px-6 py-5 border-b border-surface-800 flex items-center gap-3">
+    <div class="w-9 h-9 rounded-xl bg-brand-500 flex items-center justify-center shrink-0">
+      <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+          d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13l-1.4 7h12.8M7 13H5.4M10 21a1 1 0 100-2 1 1 0 000 2zm7 0a1 1 0 100-2 1 1 0 000 2z"/>
+      </svg>
+    </div>
+    <div>
+      <p class="font-display font-700 text-white text-base leading-tight">supermaket</p>
+      <p class="text-xs text-slate-500">Supermarché Central</p>
+    </div>
+  </div>
+
+  <!-- Nav -->
+  <nav class="flex-1 py-4 px-3 space-y-1 overflow-y-auto">
+
+    <p class="text-xs font-600 uppercase tracking-widest text-slate-600 px-3 pt-2 pb-1">Principal</p>
+
+    <a onclick="showSection('dashboard')" class="nav-item active flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer text-sm font-500 transition-all">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+          d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0h6"/>
+      </svg>
+      Tableau de bord
+    </a>
+
+    <p class="text-xs font-600 uppercase tracking-widest text-slate-600 px-3 pt-3 pb-1">Commandes</p>
+
+    <a onclick="showSection('commandes')" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer text-sm font-500 transition-all">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+          d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+      </svg>
+      Gérer les commandes
+    </a>
+
+    <a onclick="showSection('nouvelle')" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer text-sm font-500 transition-all">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+      </svg>
+      Passer une commande
+    </a>
+
+    <a onclick="showSection('reception')" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer text-sm font-500 transition-all">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+          d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"/>
+      </svg>
+      Réceptionner
+    </a>
+
+    <a onclick="showSection('factures')" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer text-sm font-500 transition-all">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+          d="M9 12h6m-3-3v6M4 6h16M4 10h4m12 0h-4M4 14h4m12 0h-4M4 18h16"/>
+      </svg>
+      Factures
+    </a>
+
+    <p class="text-xs font-600 uppercase tracking-widest text-slate-600 px-3 pt-3 pb-1">Catalogue</p>
+
+    <a class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer text-sm font-500 transition-all">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+          d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+      </svg>
+      Produits
+    </a>
+
+    <a class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer text-sm font-500 transition-all">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+          d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0"/>
+      </svg>
+      Fournisseurs
+    </a>
+
+  </nav>
+
+  <!-- User -->
+  <div class="px-4 py-4 border-t border-surface-800 flex items-center gap-3">
+    <div class="w-8 h-8 rounded-full bg-brand-500 flex items-center justify-center text-white text-xs font-700">MK</div>
+    <div class="flex-1 min-w-0">
+      <p class="text-sm font-500 text-white truncate">Kt princesse</p>
+      <p class="text-xs text-slate-500">Responsable achats</p>
+    </div>
+    <svg class="w-4 h-4 text-slate-500 cursor-pointer hover:text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h6a2 2 0 012 2v1"/>
+    </svg>
+  </div>
+</aside>
+
+<!-- ══════════════════ MAIN ══════════════════ -->
+<div class="ml-64 flex-1 flex flex-col min-h-screen">
+
+  <!-- Topbar -->
+  <header class="bg-white border-b border-surface-200 px-6 py-4 flex items-center justify-between sticky top-0 z-20">
+    <div>
+      <h1 id="page-title" class="font-display font-700 text-xl text-surface-900">Tableau de bord</h1>
+      <p class="text-sm text-slate-400">Mercredi 18 mars 2026</p>
+    </div>
+    <div class="flex items-center gap-3">
+      <!-- Search -->
+      <div class="relative hidden md:block">
+        <input type="text" placeholder="Rechercher…"
+          class="pl-9 pr-4 py-2 rounded-lg bg-surface-100 border border-surface-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 w-52"/>
+        <svg class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+        </svg>
+      </div>
+      <!-- Bell -->
+      <button class="relative p-2 rounded-lg hover:bg-surface-100 transition">
+        <svg class="w-5 h-5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+        </svg>
+        <span class="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full dot-anim"></span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Content area -->
+  <main class="flex-1 p-6 overflow-y-auto">
+
+    <!-- ═══ SECTION: DASHBOARD ═══ -->
+    <section id="sec-dashboard" class="section-pane">
+
+      <!-- KPI Cards -->
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+
+        <div class="card-hover bg-white rounded-2xl p-5 border border-surface-200">
+          <div class="flex items-start justify-between mb-3">
+            <div class="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center">
+              <svg class="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+              </svg>
+            </div>
+            <span class="text-xs text-blue-500 bg-blue-50 px-2 py-0.5 rounded-full font-500">+3 auj.</span>
+          </div>
+          <p class="text-2xl font-display font-700 text-surface-900">24</p>
+          <p class="text-sm text-slate-400 mt-0.5">Commandes en cours</p>
+        </div>
+
+        <div class="card-hover bg-white rounded-2xl p-5 border border-surface-200">
+          <div class="flex items-start justify-between mb-3">
+            <div class="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center">
+              <svg class="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+              </svg>
+            </div>
+            <span class="text-xs text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full font-500">Urgent</span>
+          </div>
+          <p class="text-2xl font-display font-700 text-surface-900">7</p>
+          <p class="text-sm text-slate-400 mt-0.5">En attente de réception</p>
+        </div>
+
+        <div class="card-hover bg-white rounded-2xl p-5 border border-surface-200">
+          <div class="flex items-start justify-between mb-3">
+            <div class="w-10 h-10 rounded-xl bg-brand-50 flex items-center justify-center">
+              <svg class="w-5 h-5 text-brand-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+              </svg>
+            </div>
+            <span class="text-xs text-brand-600 bg-brand-50 px-2 py-0.5 rounded-full font-500">Ce mois</span>
+          </div>
+          <p class="text-2xl font-display font-700 text-surface-900">152</p>
+          <p class="text-sm text-slate-400 mt-0.5">Commandes réceptionnées</p>
+        </div>
+
+        <div class="card-hover bg-white rounded-2xl p-5 border border-surface-200">
+          <div class="flex items-start justify-between mb-3">
+            <div class="w-10 h-10 rounded-xl bg-purple-50 flex items-center justify-center">
+              <svg class="w-5 h-5 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+              </svg>
+            </div>
+            <span class="text-xs text-purple-600 bg-purple-50 px-2 py-0.5 rounded-full font-500">+12%</span>
+          </div>
+          <p class="text-2xl font-display font-700 text-surface-900">4,8M</p>
+          <p class="text-sm text-slate-400 mt-0.5">Dépenses (FCFA)</p>
+        </div>
+
+      </div>
+
+      <!-- Recent + Quick actions -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+
+        <!-- Recent orders -->
+        <div class="lg:col-span-2 bg-white rounded-2xl border border-surface-200 overflow-hidden">
+          <div class="flex items-center justify-between px-5 py-4 border-b border-surface-100">
+            <h3 class="font-display font-700 text-surface-900">Commandes récentes</h3>
+            <button onclick="showSection('commandes')" class="text-xs text-brand-600 hover:underline font-500">Voir tout →</button>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+              <thead class="bg-surface-50">
+                <tr>
+                  <th class="px-5 py-3 text-left text-xs text-slate-400 font-600 uppercase tracking-wide">Réf.</th>
+                  <th class="px-5 py-3 text-left text-xs text-slate-400 font-600 uppercase tracking-wide">Fournisseur</th>
+                  <th class="px-5 py-3 text-left text-xs text-slate-400 font-600 uppercase tracking-wide">Montant</th>
+                  <th class="px-5 py-3 text-left text-xs text-slate-400 font-600 uppercase tracking-wide">Statut</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-surface-100">
+                <tr class="row-hover cursor-pointer" onclick="showSection('commandes')">
+                  <td class="px-5 py-3 font-600 text-surface-900">#CMD-2026-089</td>
+                  <td class="px-5 py-3 text-slate-500">Nestlé Cameroun</td>
+                  <td class="px-5 py-3 font-500">320 000 F</td>
+                  <td class="px-5 py-3"><span class="badge-confirmed text-xs px-2.5 py-1 rounded-full font-500">Confirmée</span></td>
+                </tr>
+                <tr class="row-hover cursor-pointer">
+                  <td class="px-5 py-3 font-600 text-surface-900">#CMD-2026-088</td>
+                  <td class="px-5 py-3 text-slate-500">Brasseries du Cameroun</td>
+                  <td class="px-5 py-3 font-500">850 000 F</td>
+                  <td class="px-5 py-3"><span class="badge-received text-xs px-2.5 py-1 rounded-full font-500">Réceptionnée</span></td>
+                </tr>
+                <tr class="row-hover cursor-pointer">
+                  <td class="px-5 py-3 font-600 text-surface-900">#CMD-2026-087</td>
+                  <td class="px-5 py-3 text-slate-500">SCDP Douala</td>
+                  <td class="px-5 py-3 font-500">125 000 F</td>
+                  <td class="px-5 py-3"><span class="badge-pending text-xs px-2.5 py-1 rounded-full font-500">En attente</span></td>
+                </tr>
+                <tr class="row-hover cursor-pointer">
+                  <td class="px-5 py-3 font-600 text-surface-900">#CMD-2026-086</td>
+                  <td class="px-5 py-3 text-slate-500">Promo-Conso</td>
+                  <td class="px-5 py-3 font-500">210 500 F</td>
+                  <td class="px-5 py-3"><span class="badge-cancelled text-xs px-2.5 py-1 rounded-full font-500">Annulée</span></td>
+                </tr>
+                <tr class="row-hover cursor-pointer">
+                  <td class="px-5 py-3 font-600 text-surface-900">#CMD-2026-085</td>
+                  <td class="px-5 py-3 text-slate-500">Unilever Cameroun</td>
+                  <td class="px-5 py-3 font-500">430 000 F</td>
+                  <td class="px-5 py-3"><span class="badge-confirmed text-xs px-2.5 py-1 rounded-full font-500">Confirmée</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Quick actions -->
+        <div class="space-y-3">
+          <div class="bg-white rounded-2xl border border-surface-200 p-5">
+            <h3 class="font-display font-700 text-surface-900 mb-4">Actions rapides</h3>
+            <div class="space-y-2">
+              <button onclick="showSection('nouvelle')"
+                class="w-full flex items-center gap-3 px-4 py-3 bg-brand-500 hover:bg-brand-600 text-white rounded-xl text-sm font-500 transition-colors">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                </svg>
+                Nouvelle commande
+              </button>
+              <button onclick="showSection('reception')"
+                class="w-full flex items-center gap-3 px-4 py-3 bg-surface-100 hover:bg-surface-200 rounded-xl text-sm font-500 transition-colors">
+                <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8"/>
+                </svg>
+                Réceptionner livraison
+              </button>
+              <button onclick="showSection('factures')"
+                class="w-full flex items-center gap-3 px-4 py-3 bg-surface-100 hover:bg-surface-200 rounded-xl text-sm font-500 transition-colors">
+                <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414A1 1 0 0119 9.414V19a2 2 0 01-2 2z"/>
+                </svg>
+                Générer une facture
+              </button>
+            </div>
+          </div>
+
+          <!-- Alert stock -->
+          <div class="bg-amber-50 rounded-2xl border border-amber-100 p-5">
+            <div class="flex items-center gap-2 mb-3">
+              <svg class="w-4 h-4 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+              </svg>
+              <h4 class="font-display font-700 text-amber-800 text-sm">Stocks critiques</h4>
+            </div>
+            <div class="space-y-2 text-xs text-amber-700">
+              <div class="flex justify-between"><span>Farine de blé 50kg</span><span class="font-600">12 u.</span></div>
+              <div class="flex justify-between"><span>Huile palme 25L</span><span class="font-600">8 u.</span></div>
+              <div class="flex justify-between"><span>Sucre blanc 25kg</span><span class="font-600">5 u.</span></div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ═══ SECTION: GÉRER COMMANDES ═══ -->
+    <section id="sec-commandes" class="section-pane hidden">
+
+      <!-- Toolbar -->
+      <div class="flex flex-wrap items-center justify-between gap-3 mb-5">
+        <div class="flex items-center gap-2 flex-wrap">
+          <div class="relative">
+            <input type="text" placeholder="N° commande ou fournisseur…"
+              class="pl-9 pr-4 py-2.5 rounded-xl bg-white border border-surface-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 w-60"/>
+            <svg class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+            </svg>
+          </div>
+          <select class="px-3 py-2.5 rounded-xl bg-white border border-surface-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500">
+            <option value="">Tous les statuts</option>
+            <option>En attente</option>
+            <option>Confirmée</option>
+            <option>Réceptionnée</option>
+            <option>Annulée</option>
+          </select>
+          <input type="date" class="px-3 py-2.5 rounded-xl bg-white border border-surface-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500" title="Filtrer par date"/>
+        </div>
+        <button onclick="showSection('nouvelle')"
+          class="flex items-center gap-2 px-4 py-2.5 bg-brand-500 hover:bg-brand-600 text-white rounded-xl text-sm font-600 transition-colors">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+          </svg>
+          Nouvelle commande
+        </button>
+      </div>
+
+      <!-- Stats rapides -->
+      <div class="grid grid-cols-4 gap-3 mb-5">
+        <div class="bg-white rounded-xl border border-surface-200 px-4 py-3 flex items-center gap-3">
+          <div class="w-2 h-2 rounded-full bg-amber-400"></div>
+          <div><p class="text-xs text-slate-400">En attente</p><p class="font-display font-700 text-surface-900">14</p></div>
+        </div>
+        <div class="bg-white rounded-xl border border-surface-200 px-4 py-3 flex items-center gap-3">
+          <div class="w-2 h-2 rounded-full bg-blue-400"></div>
+          <div><p class="text-xs text-slate-400">Confirmées</p><p class="font-display font-700 text-surface-900">7</p></div>
+        </div>
+        <div class="bg-white rounded-xl border border-surface-200 px-4 py-3 flex items-center gap-3">
+          <div class="w-2 h-2 rounded-full bg-brand-500"></div>
+          <div><p class="text-xs text-slate-400">Réceptionnées</p><p class="font-display font-700 text-surface-900">66</p></div>
+        </div>
+        <div class="bg-white rounded-xl border border-surface-200 px-4 py-3 flex items-center gap-3">
+          <div class="w-2 h-2 rounded-full bg-red-400"></div>
+          <div><p class="text-xs text-slate-400">Annulées</p><p class="font-display font-700 text-surface-900">2</p></div>
+        </div>
+      </div>
+
+      <!-- Table MLD-conforme: numéro, date, statut, fournisseur (id+nom), montant total, nb lignes -->
+      <div class="bg-white rounded-2xl border border-surface-200 overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead class="bg-surface-50 border-b border-surface-200">
+              <tr>
+                <th class="px-4 py-3.5 text-left text-xs text-slate-400 font-600 uppercase tracking-wide">N° Commande</th>
+                <th class="px-4 py-3.5 text-left text-xs text-slate-400 font-600 uppercase tracking-wide">Date</th>
+                <th class="px-4 py-3.5 text-left text-xs text-slate-400 font-600 uppercase tracking-wide">Fournisseur</th>
+                <th class="px-4 py-3.5 text-left text-xs text-slate-400 font-600 uppercase tracking-wide">Nb lignes</th>
+                <th class="px-4 py-3.5 text-right text-xs text-slate-400 font-600 uppercase tracking-wide">Montant total</th>
+                <th class="px-4 py-3.5 text-left text-xs text-slate-400 font-600 uppercase tracking-wide">Statut</th>
+                <th class="px-4 py-3.5 text-center text-xs text-slate-400 font-600 uppercase tracking-wide">Actions</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-surface-100" id="tbody-commandes">
+
+              <!-- Ligne 1 -->
+              <tr class="row-hover">
+                <td class="px-4 py-3.5">
+                  <span class="font-display font-700 text-surface-900 text-sm">CMD-089</span>
+                  <p class="text-xs text-slate-400 mt-0.5">Créée le 18/03/2026</p>
+                </td>
+                <td class="px-4 py-3.5 text-slate-600 text-sm">18/03/2026</td>
+                <td class="px-4 py-3.5">
+                  <p class="text-sm font-500 text-surface-900">Nestlé Cameroun</p>
+                  <p class="text-xs text-slate-400">ID : F-003</p>
+                </td>
+                <td class="px-4 py-3.5">
+                  <span class="bg-surface-100 text-slate-600 text-xs font-600 px-2.5 py-1 rounded-full">12 articles</span>
+                </td>
+                <td class="px-4 py-3.5 text-right font-display font-700 text-surface-900">320 000 F</td>
+                <td class="px-4 py-3.5"><span class="badge-confirmed text-xs px-2.5 py-1 rounded-full font-500">Confirmée</span></td>
+                <td class="px-4 py-3.5">
+                  <div class="flex items-center justify-center gap-1">
+                    <button onclick="openModal('modal-voir')" title="Voir détails" class="p-1.5 hover:bg-brand-50 rounded-lg transition group">
+                      <svg class="w-4 h-4 text-slate-400 group-hover:text-brand-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0zm-3-7C7.5 5 3 12 3 12s4.5 7 9 7 9-7 9-7-4.5-7-9-7z"/></svg>
+                    </button>
+                    <button onclick="openModal('modal-commande')" title="Éditer" class="p-1.5 hover:bg-amber-50 rounded-lg transition group">
+                      <svg class="w-4 h-4 text-slate-400 group-hover:text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                    </button>
+                    <button onclick="openModal('modal-supprimer')" title="Supprimer" class="p-1.5 hover:bg-red-50 rounded-lg transition group">
+                      <svg class="w-4 h-4 text-slate-400 group-hover:text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+
+              <!-- Ligne 2 -->
+              <tr class="row-hover">
+                <td class="px-4 py-3.5">
+                  <span class="font-display font-700 text-surface-900 text-sm">CMD-088</span>
+                  <p class="text-xs text-slate-400 mt-0.5">Créée le 17/03/2026</p>
+                </td>
+                <td class="px-4 py-3.5 text-slate-600 text-sm">17/03/2026</td>
+                <td class="px-4 py-3.5">
+                  <p class="text-sm font-500 text-surface-900">Brasseries du Cameroun</p>
+                  <p class="text-xs text-slate-400">ID : F-001</p>
+                </td>
+                <td class="px-4 py-3.5">
+                  <span class="bg-surface-100 text-slate-600 text-xs font-600 px-2.5 py-1 rounded-full">5 articles</span>
+                </td>
+                <td class="px-4 py-3.5 text-right font-display font-700 text-surface-900">850 000 F</td>
+                <td class="px-4 py-3.5"><span class="badge-received text-xs px-2.5 py-1 rounded-full font-500">Réceptionnée</span></td>
+                <td class="px-4 py-3.5">
+                  <div class="flex items-center justify-center gap-1">
+                    <button onclick="openModal('modal-voir')" class="p-1.5 hover:bg-brand-50 rounded-lg transition group"><svg class="w-4 h-4 text-slate-400 group-hover:text-brand-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0zm-3-7C7.5 5 3 12 3 12s4.5 7 9 7 9-7 9-7-4.5-7-9-7z"/></svg></button>
+                    <button onclick="openModal('modal-commande')" class="p-1.5 hover:bg-amber-50 rounded-lg transition group"><svg class="w-4 h-4 text-slate-400 group-hover:text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg></button>
+                    <button onclick="openModal('modal-supprimer')" class="p-1.5 hover:bg-red-50 rounded-lg transition group"><svg class="w-4 h-4 text-slate-400 group-hover:text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button>
+                  </div>
+                </td>
+              </tr>
+
+              <!-- Ligne 3 -->
+              <tr class="row-hover">
+                <td class="px-4 py-3.5">
+                  <span class="font-display font-700 text-surface-900 text-sm">CMD-087</span>
+                  <p class="text-xs text-slate-400 mt-0.5">Créée le 16/03/2026</p>
+                </td>
+                <td class="px-4 py-3.5 text-slate-600 text-sm">16/03/2026</td>
+                <td class="px-4 py-3.5">
+                  <p class="text-sm font-500 text-surface-900">SCDP Douala</p>
+                  <p class="text-xs text-slate-400">ID : F-007</p>
+                </td>
+                <td class="px-4 py-3.5">
+                  <span class="bg-surface-100 text-slate-600 text-xs font-600 px-2.5 py-1 rounded-full">8 articles</span>
+                </td>
+                <td class="px-4 py-3.5 text-right font-display font-700 text-surface-900">125 000 F</td>
+                <td class="px-4 py-3.5"><span class="badge-pending text-xs px-2.5 py-1 rounded-full font-500">En attente</span></td>
+                <td class="px-4 py-3.5">
+                  <div class="flex items-center justify-center gap-1">
+                    <button onclick="openModal('modal-voir')" class="p-1.5 hover:bg-brand-50 rounded-lg transition group"><svg class="w-4 h-4 text-slate-400 group-hover:text-brand-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0zm-3-7C7.5 5 3 12 3 12s4.5 7 9 7 9-7 9-7-4.5-7-9-7z"/></svg></button>
+                    <button onclick="openModal('modal-commande')" class="p-1.5 hover:bg-amber-50 rounded-lg transition group"><svg class="w-4 h-4 text-slate-400 group-hover:text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg></button>
+                    <button onclick="openModal('modal-supprimer')" class="p-1.5 hover:bg-red-50 rounded-lg transition group"><svg class="w-4 h-4 text-slate-400 group-hover:text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button>
+                  </div>
+                </td>
+              </tr>
+
+              <!-- Ligne 4 -->
+              <tr class="row-hover">
+                <td class="px-4 py-3.5">
+                  <span class="font-display font-700 text-surface-900 text-sm">CMD-086</span>
+                  <p class="text-xs text-slate-400 mt-0.5">Créée le 15/03/2026</p>
+                </td>
+                <td class="px-4 py-3.5 text-slate-600 text-sm">15/03/2026</td>
+                <td class="px-4 py-3.5">
+                  <p class="text-sm font-500 text-surface-900">Promo-Conso</p>
+                  <p class="text-xs text-slate-400">ID : F-012</p>
+                </td>
+                <td class="px-4 py-3.5">
+                  <span class="bg-surface-100 text-slate-600 text-xs font-600 px-2.5 py-1 rounded-full">3 articles</span>
+                </td>
+                <td class="px-4 py-3.5 text-right font-display font-700 text-surface-900">210 500 F</td>
+                <td class="px-4 py-3.5"><span class="badge-cancelled text-xs px-2.5 py-1 rounded-full font-500">Annulée</span></td>
+                <td class="px-4 py-3.5">
+                  <div class="flex items-center justify-center gap-1">
+                    <button onclick="openModal('modal-voir')" class="p-1.5 hover:bg-brand-50 rounded-lg transition group"><svg class="w-4 h-4 text-slate-400 group-hover:text-brand-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0zm-3-7C7.5 5 3 12 3 12s4.5 7 9 7 9-7 9-7-4.5-7-9-7z"/></svg></button>
+                    <button onclick="openModal('modal-commande')" class="p-1.5 hover:bg-amber-50 rounded-lg transition group"><svg class="w-4 h-4 text-slate-400 group-hover:text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg></button>
+                    <button onclick="openModal('modal-supprimer')" class="p-1.5 hover:bg-red-50 rounded-lg transition group"><svg class="w-4 h-4 text-slate-400 group-hover:text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button>
+                  </div>
+                </td>
+              </tr>
+
+              <!-- Ligne 5 -->
+              <tr class="row-hover">
+                <td class="px-4 py-3.5">
+                  <span class="font-display font-700 text-surface-900 text-sm">CMD-085</span>
+                  <p class="text-xs text-slate-400 mt-0.5">Créée le 12/03/2026</p>
+                </td>
+                <td class="px-4 py-3.5 text-slate-600 text-sm">12/03/2026</td>
+                <td class="px-4 py-3.5">
+                  <p class="text-sm font-500 text-surface-900">Unilever Cameroun</p>
+                  <p class="text-xs text-slate-400">ID : F-005</p>
+                </td>
+                <td class="px-4 py-3.5">
+                  <span class="bg-surface-100 text-slate-600 text-xs font-600 px-2.5 py-1 rounded-full">7 articles</span>
+                </td>
+                <td class="px-4 py-3.5 text-right font-display font-700 text-surface-900">430 000 F</td>
+                <td class="px-4 py-3.5"><span class="badge-confirmed text-xs px-2.5 py-1 rounded-full font-500">Confirmée</span></td>
+                <td class="px-4 py-3.5">
+                  <div class="flex items-center justify-center gap-1">
+                    <button onclick="openModal('modal-voir')" class="p-1.5 hover:bg-brand-50 rounded-lg transition group"><svg class="w-4 h-4 text-slate-400 group-hover:text-brand-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0zm-3-7C7.5 5 3 12 3 12s4.5 7 9 7 9-7 9-7-4.5-7-9-7z"/></svg></button>
+                    <button onclick="openModal('modal-commande')" class="p-1.5 hover:bg-amber-50 rounded-lg transition group"><svg class="w-4 h-4 text-slate-400 group-hover:text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg></button>
+                    <button onclick="openModal('modal-supprimer')" class="p-1.5 hover:bg-red-50 rounded-lg transition group"><svg class="w-4 h-4 text-slate-400 group-hover:text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button>
+                  </div>
+                </td>
+              </tr>
+
+            </tbody>
+          </table>
+        </div>
+        <!-- Pagination -->
+        <div class="flex items-center justify-between px-5 py-3 border-t border-surface-100 text-sm text-slate-400">
+          <span>Affichage 1–5 sur 89 commandes</span>
+          <div class="flex items-center gap-1">
+            <button class="px-3 py-1.5 rounded-lg hover:bg-surface-100 transition">‹</button>
+            <button class="px-3 py-1.5 rounded-lg bg-brand-500 text-white text-xs font-600">1</button>
+            <button class="px-3 py-1.5 rounded-lg hover:bg-surface-100 transition text-xs">2</button>
+            <button class="px-3 py-1.5 rounded-lg hover:bg-surface-100 transition text-xs">3</button>
+            <span class="text-xs px-1">…</span>
+            <button class="px-3 py-1.5 rounded-lg hover:bg-surface-100 transition text-xs">18</button>
+            <button class="px-3 py-1.5 rounded-lg hover:bg-surface-100 transition">›</button>
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ═══ SECTION: NOUVELLE COMMANDE ═══ -->
+    <section id="sec-nouvelle" class="section-pane hidden">
+      <div class="max-w-3xl">
+        <div class="bg-white rounded-2xl border border-surface-200 overflow-hidden">
+          <div class="px-6 py-5 border-b border-surface-100 bg-surface-50">
+            <h3 class="font-display font-700 text-surface-900">Nouvelle commande d'approvisionnement</h3>
+            <p class="text-sm text-slate-400 mt-0.5">Remplissez les informations ci-dessous</p>
+          </div>
+          <div class="p-6 space-y-5">
+
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label class="block text-xs font-600 text-slate-500 uppercase tracking-wide mb-1.5">Fournisseur *</label>
+                <select class="w-full px-3 py-2.5 rounded-xl border border-surface-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white">
+                  <option>— Sélectionner un fournisseur —</option>
+                  <option>Nestlé Cameroun</option>
+                  <option>Brasseries du Cameroun</option>
+                  <option>Unilever Cameroun</option>
+                  <option>SCDP Douala</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-xs font-600 text-slate-500 uppercase tracking-wide mb-1.5">Date de livraison souhaitée</label>
+                <input type="date" class="w-full px-3 py-2.5 rounded-xl border border-surface-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"/>
+              </div>
+            </div>
+
+            <!-- Articles -->
+            <div>
+              <div class="flex items-center justify-between mb-2">
+                <label class="block text-xs font-600 text-slate-500 uppercase tracking-wide">Articles commandés</label>
+                <button class="text-xs text-brand-600 hover:underline font-500">+ Ajouter un article</button>
+              </div>
+              <div class="border border-surface-200 rounded-xl overflow-hidden">
+                <table class="w-full text-sm">
+                  <thead class="bg-surface-50">
+                    <tr>
+                      <th class="px-4 py-2.5 text-left text-xs text-slate-400 font-600">Produit</th>
+                      <th class="px-4 py-2.5 text-left text-xs text-slate-400 font-600">Qté</th>
+                      <th class="px-4 py-2.5 text-left text-xs text-slate-400 font-600">Prix unit. (F)</th>
+                      <th class="px-4 py-2.5 text-left text-xs text-slate-400 font-600">Total</th>
+                      <th class="px-4 py-2.5"></th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-surface-100">
+                    <tr>
+                      <td class="px-4 py-2.5"><input type="text" value="Lait concentré sucré 410g" class="w-full bg-transparent focus:outline-none text-sm"/></td>
+                      <td class="px-4 py-2.5"><input type="number" value="48" class="w-16 bg-surface-50 rounded-lg px-2 py-1 text-sm border border-surface-200 focus:outline-none focus:ring-1 focus:ring-brand-500"/></td>
+                      <td class="px-4 py-2.5"><input type="number" value="650" class="w-20 bg-surface-50 rounded-lg px-2 py-1 text-sm border border-surface-200 focus:outline-none focus:ring-1 focus:ring-brand-500"/></td>
+                      <td class="px-4 py-2.5 font-500 text-slate-700">31 200 F</td>
+                      <td class="px-4 py-2.5"><button class="text-slate-300 hover:text-red-400 transition">✕</button></td>
+                    </tr>
+                    <tr>
+                      <td class="px-4 py-2.5"><input type="text" value="Café soluble 200g" class="w-full bg-transparent focus:outline-none text-sm"/></td>
+                      <td class="px-4 py-2.5"><input type="number" value="24" class="w-16 bg-surface-50 rounded-lg px-2 py-1 text-sm border border-surface-200 focus:outline-none focus:ring-1 focus:ring-brand-500"/></td>
+                      <td class="px-4 py-2.5"><input type="number" value="1800" class="w-20 bg-surface-50 rounded-lg px-2 py-1 text-sm border border-surface-200 focus:outline-none focus:ring-1 focus:ring-brand-500"/></td>
+                      <td class="px-4 py-2.5 font-500 text-slate-700">43 200 F</td>
+                      <td class="px-4 py-2.5"><button class="text-slate-300 hover:text-red-400 transition">✕</button></td>
+                    </tr>
+                    <tr class="bg-surface-50">
+                      <td colspan="3" class="px-4 py-2.5 text-right text-xs font-600 text-slate-500 uppercase">Total commande</td>
+                      <td class="px-4 py-2.5 font-display font-700 text-brand-600">74 400 F</td>
+                      <td></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-xs font-600 text-slate-500 uppercase tracking-wide mb-1.5">Notes / Observations</label>
+              <textarea rows="2" placeholder="Remarques éventuelles…"
+                class="w-full px-3 py-2.5 rounded-xl border border-surface-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none"></textarea>
+            </div>
+
+            <div class="flex items-center gap-3 pt-2">
+              <button class="flex-1 py-3 bg-brand-500 hover:bg-brand-600 text-white rounded-xl text-sm font-600 transition-colors">
+                Enregistrer & Passer la commande
+              </button>
+              <button class="px-5 py-3 bg-surface-100 hover:bg-surface-200 rounded-xl text-sm font-500 transition-colors">
+                Brouillon
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══ SECTION: RÉCEPTION ═══ -->
+    <section id="sec-reception" class="section-pane hidden">
+
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+
+        <!-- Liste commandes à réceptionner -->
+        <div class="lg:col-span-1 space-y-3">
+          <h3 class="font-display font-700 text-surface-900 text-base">Commandes en attente</h3>
+
+          <div class="bg-white rounded-2xl border-2 border-brand-500 p-4 cursor-pointer">
+            <div class="flex items-start justify-between mb-2">
+              <p class="font-display font-700 text-surface-900 text-sm">#CMD-2026-089</p>
+              <span class="badge-confirmed text-xs px-2 py-0.5 rounded-full font-500">Confirmée</span>
+            </div>
+            <p class="text-sm text-slate-500 mb-1">Nestlé Cameroun</p>
+            <p class="text-xs text-slate-400">Livraison prévue : 18/03/2026</p>
+            <p class="text-xs font-600 text-brand-600 mt-2">12 articles · 320 000 F</p>
+          </div>
+
+          <div class="bg-white rounded-2xl border border-surface-200 p-4 cursor-pointer hover:border-brand-300 transition-colors">
+            <div class="flex items-start justify-between mb-2">
+              <p class="font-display font-700 text-surface-900 text-sm">#CMD-2026-085</p>
+              <span class="badge-confirmed text-xs px-2 py-0.5 rounded-full font-500">Confirmée</span>
+            </div>
+            <p class="text-sm text-slate-500 mb-1">Unilever Cameroun</p>
+            <p class="text-xs text-slate-400">Livraison prévue : 20/03/2026</p>
+            <p class="text-xs font-600 text-brand-600 mt-2">7 articles · 430 000 F</p>
+          </div>
+
+          <div class="bg-white rounded-2xl border border-surface-200 p-4 cursor-pointer hover:border-brand-300 transition-colors">
+            <div class="flex items-start justify-between mb-2">
+              <p class="font-display font-700 text-surface-900 text-sm">#CMD-2026-083</p>
+              <span class="badge-confirmed text-xs px-2 py-0.5 rounded-full font-500">Confirmée</span>
+            </div>
+            <p class="text-sm text-slate-500 mb-1">SCDP Douala</p>
+            <p class="text-xs text-slate-400">Livraison prévue : 22/03/2026</p>
+            <p class="text-xs font-600 text-brand-600 mt-2">4 articles · 180 000 F</p>
+          </div>
+        </div>
+
+        <!-- Formulaire réception -->
+        <div class="lg:col-span-2 bg-white rounded-2xl border border-surface-200 overflow-hidden">
+          <div class="px-6 py-4 border-b border-surface-100 bg-surface-50 flex items-center justify-between">
+            <div>
+              <h3 class="font-display font-700 text-surface-900">Réception · #CMD-2026-089</h3>
+              <p class="text-xs text-slate-400">Nestlé Cameroun – 18 mars 2026</p>
+            </div>
+            <span class="badge-confirmed text-xs px-3 py-1 rounded-full font-500">Confirmée</span>
+          </div>
+          <div class="p-6">
+            <!-- Checklist articles -->
+            <div class="space-y-2 mb-5">
+              <p class="text-xs font-600 text-slate-500 uppercase tracking-wide mb-3">Vérification des articles reçus</p>
+
+              <!-- Article row -->
+              <div class="flex items-center gap-3 p-3 rounded-xl border border-surface-100 bg-surface-50">
+                <input type="checkbox" checked class="w-4 h-4 accent-brand-500 rounded"/>
+                <div class="flex-1">
+                  <p class="text-sm font-500 text-surface-900">Lait concentré sucré 410g</p>
+                  <p class="text-xs text-slate-400">Commandé : 48 · Reçu :</p>
+                </div>
+                <input type="number" value="48" class="w-16 bg-white border border-surface-200 rounded-lg px-2 py-1 text-sm text-center focus:outline-none focus:ring-1 focus:ring-brand-500"/>
+                <span class="w-5 h-5 rounded-full bg-brand-100 text-brand-600 flex items-center justify-center text-xs">✓</span>
+              </div>
+
+              <div class="flex items-center gap-3 p-3 rounded-xl border border-surface-100 bg-surface-50">
+                <input type="checkbox" checked class="w-4 h-4 accent-brand-500 rounded"/>
+                <div class="flex-1">
+                  <p class="text-sm font-500 text-surface-900">Café soluble Nescafé 200g</p>
+                  <p class="text-xs text-slate-400">Commandé : 24 · Reçu :</p>
+                </div>
+                <input type="number" value="20" class="w-16 bg-white border border-surface-200 rounded-lg px-2 py-1 text-sm text-center focus:outline-none focus:ring-1 focus:ring-brand-500"/>
+                <span class="w-5 h-5 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center text-xs">!</span>
+              </div>
+
+              <div class="flex items-center gap-3 p-3 rounded-xl border border-surface-100 bg-surface-50">
+                <input type="checkbox" class="w-4 h-4 accent-brand-500 rounded"/>
+                <div class="flex-1">
+                  <p class="text-sm font-500 text-surface-900">Chocolat en poudre 500g</p>
+                  <p class="text-xs text-slate-400">Commandé : 36 · Reçu :</p>
+                </div>
+                <input type="number" value="0" class="w-16 bg-white border border-surface-200 rounded-lg px-2 py-1 text-sm text-center focus:outline-none focus:ring-1 focus:ring-brand-500"/>
+                <span class="w-5 h-5 rounded-full bg-red-100 text-red-500 flex items-center justify-center text-xs">✕</span>
+              </div>
+
+            </div>
+
+            <div class="mb-5">
+              <label class="block text-xs font-600 text-slate-500 uppercase tracking-wide mb-1.5">Observations de réception</label>
+              <textarea rows="2" placeholder="Dommages, manquants, écarts…"
+                class="w-full px-3 py-2.5 rounded-xl border border-surface-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none"></textarea>
+            </div>
+
+            <div class="flex gap-3">
+              <button class="flex-1 py-3 bg-brand-500 hover:bg-brand-600 text-white rounded-xl text-sm font-600 transition-colors">
+                Valider la réception
+              </button>
+              <button onclick="showSection('factures')" class="px-5 py-3 bg-surface-100 hover:bg-surface-200 rounded-xl text-sm font-500 transition-colors">
+                Générer facture
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══ SECTION: FACTURES ═══ -->
+    <section id="sec-factures" class="section-pane hidden">
+
+      <div class="grid grid-cols-1 lg:grid-cols-5 gap-4">
+
+        <!-- Liste factures -->
+        <div class="lg:col-span-2 space-y-3">
+          <div class="flex items-center justify-between">
+            <h3 class="font-display font-700 text-surface-900 text-base">Factures générées</h3>
+            <button class="text-xs text-brand-600 font-500 hover:underline">+ Nouvelle</button>
+          </div>
+
+          <div class="bg-white rounded-2xl border-2 border-brand-500 p-4 cursor-pointer">
+            <div class="flex items-center justify-between mb-1">
+              <p class="font-display font-700 text-sm text-surface-900">FAC-2026-0089</p>
+              <span class="text-xs bg-brand-50 text-brand-700 px-2 py-0.5 rounded-full font-500">Payée</span>
+            </div>
+            <p class="text-xs text-slate-400">Brasseries du Cameroun</p>
+            <p class="text-xs text-slate-400 mt-0.5">17/03/2026</p>
+            <p class="font-display font-700 text-brand-600 mt-2">850 000 FCFA</p>
+          </div>
+
+          <div class="bg-white rounded-2xl border border-surface-200 p-4 cursor-pointer hover:border-brand-300 transition-colors">
+            <div class="flex items-center justify-between mb-1">
+              <p class="font-display font-700 text-sm text-surface-900">FAC-2026-0085</p>
+              <span class="text-xs bg-amber-50 text-amber-700 px-2 py-0.5 rounded-full font-500">En attente</span>
+            </div>
+            <p class="text-xs text-slate-400">Unilever Cameroun</p>
+            <p class="text-xs text-slate-400 mt-0.5">12/03/2026</p>
+            <p class="font-display font-700 text-slate-700 mt-2">430 000 FCFA</p>
+          </div>
+
+          <div class="bg-white rounded-2xl border border-surface-200 p-4 cursor-pointer hover:border-brand-300 transition-colors">
+            <div class="flex items-center justify-between mb-1">
+              <p class="font-display font-700 text-sm text-surface-900">FAC-2026-0081</p>
+              <span class="text-xs bg-red-50 text-red-600 px-2 py-0.5 rounded-full font-500">En retard</span>
+            </div>
+            <p class="text-xs text-slate-400">Nestlé Cameroun</p>
+            <p class="text-xs text-slate-400 mt-0.5">05/03/2026</p>
+            <p class="font-display font-700 text-slate-700 mt-2">220 000 FCFA</p>
+          </div>
+        </div>
+
+        <!-- Aperçu facture -->
+        <div class="lg:col-span-3 bg-white rounded-2xl border border-surface-200 overflow-hidden">
+          <div class="px-6 py-4 border-b border-surface-100 bg-surface-50 flex items-center justify-between">
+            <h3 class="font-display font-700 text-surface-900">Aperçu · FAC-2026-0089</h3>
+            <div class="flex gap-2">
+              <button class="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-surface-200 rounded-lg text-xs font-500 hover:bg-surface-100 transition">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+                Imprimer
+              </button>
+              <button class="flex items-center gap-1.5 px-3 py-1.5 bg-brand-500 rounded-lg text-xs font-500 text-white hover:bg-brand-600 transition">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                PDF
+              </button>
+            </div>
+          </div>
+
+          <!-- Invoice preview -->
+          <div class="p-6">
+            <div class="border border-surface-200 rounded-xl p-5 font-body text-sm">
+              <!-- Header -->
+              <div class="flex items-start justify-between mb-5 pb-5 border-b border-surface-100">
+                <div>
+                  <div class="flex items-center gap-2 mb-1">
+                    <div class="w-7 h-7 rounded-lg bg-brand-500 flex items-center justify-center">
+                      <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13l-1.4 7h12.8"/></svg>
+                    </div>
+                    <span class="font-display font-700 text-surface-900">supermaket</span>
+                  </div>
+                  <p class="text-xs text-slate-400">Supermarché Central, Bafoussam</p>
+                  <p class="text-xs text-slate-400">Tel: +237 222 000 000</p>
+                </div>
+                <div class="text-right">
+                  <p class="font-display font-700 text-xl text-surface-900">FACTURE</p>
+                  <p class="text-xs text-slate-400 mt-1">N° FAC-2026-0089</p>
+                  <p class="text-xs text-slate-400">Date : 17/03/2026</p>
+                  <p class="text-xs text-slate-400">Échéance : 17/04/2026</p>
+                </div>
+              </div>
+              <!-- Fournisseur -->
+              <div class="mb-4">
+                <p class="text-xs font-600 text-slate-400 uppercase mb-1">Fournisseur</p>
+                <p class="font-600 text-surface-900">Brasseries du Cameroun</p>
+                <p class="text-xs text-slate-400">Douala, Cameroun · Tel : +237 233 000 111</p>
+              </div>
+              <!-- Table -->
+              <table class="w-full text-xs mb-4">
+                <thead class="bg-surface-800 text-white">
+                  <tr>
+                    <th class="px-3 py-2 text-left rounded-tl-lg">Article</th>
+                    <th class="px-3 py-2 text-center">Qté</th>
+                    <th class="px-3 py-2 text-right">P.U. (F)</th>
+                    <th class="px-3 py-2 text-right rounded-tr-lg">Total (F)</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-surface-100">
+                  <tr><td class="px-3 py-1.5">Castel Beer 65cl (casier 24)</td><td class="px-3 py-1.5 text-center">20</td><td class="px-3 py-1.5 text-right">14 000</td><td class="px-3 py-1.5 text-right font-600">280 000</td></tr>
+                  <tr><td class="px-3 py-1.5">Maltina 33cl (carton 24)</td><td class="px-3 py-1.5 text-center">15</td><td class="px-3 py-1.5 text-right">12 000</td><td class="px-3 py-1.5 text-right font-600">180 000</td></tr>
+                  <tr><td class="px-3 py-1.5">Eau minérale 1.5L (carton 12)</td><td class="px-3 py-1.5 text-center">30</td><td class="px-3 py-1.5 text-right">4 000</td><td class="px-3 py-1.5 text-right font-600">120 000</td></tr>
+                  <tr><td class="px-3 py-1.5">Jus Frutti 1L (carton 12)</td><td class="px-3 py-1.5 text-center">20</td><td class="px-3 py-1.5 text-right">6 750</td><td class="px-3 py-1.5 text-right font-600">135 000</td></tr>
+                </tbody>
+                <tfoot class="bg-surface-50">
+                  <tr><td colspan="3" class="px-3 py-1.5 text-right font-600">Sous-total HT</td><td class="px-3 py-1.5 text-right font-600">715 000</td></tr>
+                  <tr><td colspan="3" class="px-3 py-1.5 text-right text-slate-400">TVA (19,25%)</td><td class="px-3 py-1.5 text-right text-slate-400">135 638</td></tr>
+                  <tr class="bg-brand-500 text-white"><td colspan="3" class="px-3 py-2 text-right font-700 rounded-bl-lg">TOTAL TTC</td><td class="px-3 py-2 text-right font-700 rounded-br-lg">850 638 F</td></tr>
+                </tfoot>
+              </table>
+              <p class="text-xs text-slate-400 text-center">Merci pour votre confiance · Mode de paiement : Virement bancaire</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<!-- ══════════ MODALS ══════════ -->
+
+<!-- Modal: Créer / Éditer commande — fidèle à la maquette manuscrite -->
+<div id="modal-commande" class="modal-overlay fixed inset-0 bg-black/50 z-50 items-center justify-center p-4">
+  <div class="bg-white rounded-2xl w-full max-w-3xl shadow-2xl max-h-[90vh] flex flex-col">
+
+    <!-- Header -->
+    <div class="flex items-center justify-between px-6 py-4 border-b border-surface-100 shrink-0">
+      <div class="flex items-center gap-3">
+        <div class="w-8 h-8 rounded-lg bg-brand-50 flex items-center justify-center">
+          <svg class="w-4 h-4 text-brand-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+        </div>
+        <h3 class="font-display font-700 text-surface-900">Éditer / Saisir Commande</h3>
+      </div>
+      <button onclick="closeModal('modal-commande')" class="text-slate-400 hover:text-slate-600 text-xl leading-none p-1">✕</button>
+    </div>
+
+    <div class="overflow-y-auto flex-1 p-6 space-y-5">
+
+      <!-- ── Ligne 1 : id_com + Date ── -->
+      <div class="grid grid-cols-3 gap-4">
+        <div>
+          <label class="block text-xs font-600 text-slate-500 uppercase tracking-wide mb-1.5">N° Commande</label>
+          <input type="text" value="CMD-090" readonly
+            class="w-full px-3 py-2.5 rounded-xl border border-surface-200 bg-surface-50 text-sm text-slate-400 cursor-not-allowed focus:outline-none"/>
+          <p class="text-xs text-slate-400 mt-1">Généré automatiquement</p>
+        </div>
+        <div>
+          <label class="block text-xs font-600 text-slate-500 uppercase tracking-wide mb-1.5">Date de commande *</label>
+          <input type="date" value="2026-03-18"
+            class="w-full px-3 py-2.5 rounded-xl border border-surface-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"/>
+        </div>
+        <div>
+          <label class="block text-xs font-600 text-slate-500 uppercase tracking-wide mb-1.5">Statut</label>
+          <select class="w-full px-3 py-2.5 rounded-xl border border-surface-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white">
+            <option selected>En attente</option>
+            <option>Confirmée</option>
+            <option>Réceptionnée</option>
+            <option>Annulée</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- ── Ligne 2 : Fournisseur (dropdown avec id) ── -->
+      <div>
+        <label class="block text-xs font-600 text-slate-500 uppercase tracking-wide mb-1.5">Fournisseur *</label>
+        <div class="flex gap-3 items-start">
+          <div class="w-28">
+            <input type="text" value="F-003" readonly placeholder="ID fourn."
+              class="w-full px-3 py-2.5 rounded-xl border border-surface-200 bg-surface-50 text-xs text-slate-400 focus:outline-none"/>
+            <p class="text-xs text-slate-400 mt-1 text-center">id_fournisseur</p>
+          </div>
+          <div class="flex-1">
+            <select class="w-full px-3 py-2.5 rounded-xl border border-surface-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white">
+              <option>— Sélectionner un fournisseur —</option>
+              <option selected>Nestlé Cameroun</option>
+              <option>Brasseries du Cameroun</option>
+              <option>Unilever Cameroun</option>
+              <option>SCDP Douala</option>
+              <option>Promo-Conso</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Séparateur ── -->
+      <div class="border-t border-dashed border-surface-200 pt-4">
+        <div class="flex items-center justify-between mb-3">
+          <p class="text-xs font-600 text-slate-500 uppercase tracking-wide">Détails Commande (Détail_Cmd)</p>
+          <span class="text-xs text-slate-400">Saisissez chaque ligne produit puis cliquez Ajouter</span>
+        </div>
+
+        <!-- ── Formulaire saisie ligne produit ── -->
+        <div class="bg-surface-50 border border-surface-200 rounded-xl p-4 mb-3">
+          <div class="grid grid-cols-6 gap-2 items-end">
+
+            <!-- Code Produit -->
+            <div class="col-span-1">
+              <label class="block text-xs font-600 text-slate-500 mb-1">Code P.</label>
+              <input type="text" id="inp-code" placeholder="ex: P-012"
+                class="w-full px-2.5 py-2 rounded-lg border border-surface-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white"/>
+            </div>
+
+            <!-- Libellé -->
+            <div class="col-span-2">
+              <label class="block text-xs font-600 text-slate-500 mb-1">Libellé produit</label>
+              <input type="text" id="inp-libelle" placeholder="ex: Lait concentré 410g"
+                class="w-full px-2.5 py-2 rounded-lg border border-surface-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white"/>
+            </div>
+
+            <!-- Qté commandée -->
+            <div class="col-span-1">
+              <label class="block text-xs font-600 text-slate-500 mb-1">Qté com.</label>
+              <input type="number" id="inp-qte" placeholder="0" min="1"
+                class="w-full px-2.5 py-2 rounded-lg border border-surface-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white text-center"/>
+            </div>
+
+            <!-- Prix unitaire -->
+            <div class="col-span-1">
+              <label class="block text-xs font-600 text-slate-500 mb-1">PU (F)</label>
+              <input type="number" id="inp-pu" placeholder="0" min="0"
+                class="w-full px-2.5 py-2 rounded-lg border border-surface-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white text-right"/>
+            </div>
+
+            <!-- Bouton Ajouter -->
+            <div class="col-span-1">
+              <button onclick="ajouterLigne()"
+                class="w-full py-2 bg-brand-500 hover:bg-brand-600 text-white rounded-lg text-sm font-600 transition-colors">
+                + Ajouter
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Tableau récapitulatif des lignes ── -->
+        <div class="border border-surface-200 rounded-xl overflow-hidden">
+          <table class="w-full text-sm" id="table-lignes">
+            <thead class="bg-surface-800 text-white">
+              <tr>
+                <th class="px-3 py-2.5 text-left text-xs font-600 uppercase tracking-wide">Code P.</th>
+                <th class="px-3 py-2.5 text-left text-xs font-600 uppercase tracking-wide">Libellé</th>
+                <th class="px-3 py-2.5 text-center text-xs font-600 uppercase tracking-wide">Qté com.</th>
+                <th class="px-3 py-2.5 text-right text-xs font-600 uppercase tracking-wide">PU (F)</th>
+                <th class="px-3 py-2.5 text-right text-xs font-600 uppercase tracking-wide">Total (F)</th>
+                <th class="px-3 py-2.5 text-center text-xs font-600 uppercase tracking-wide">Suppr.</th>
+              </tr>
+            </thead>
+            <tbody id="tbody-lignes" class="divide-y divide-surface-100">
+              <!-- Lignes pré-remplies (statiques) -->
+              <tr class="row-hover">
+                <td class="px-3 py-2.5 font-600 text-surface-900 text-xs">P-041</td>
+                <td class="px-3 py-2.5 text-slate-600">Lait concentré sucré 410g</td>
+                <td class="px-3 py-2.5 text-center font-500">48</td>
+                <td class="px-3 py-2.5 text-right text-slate-500">650</td>
+                <td class="px-3 py-2.5 text-right font-600 text-surface-900">31 200</td>
+                <td class="px-3 py-2.5 text-center">
+                  <button onclick="this.closest('tr').remove();recalcTotal()" class="text-slate-300 hover:text-red-400 transition text-base leading-none">✕</button>
+                </td>
+              </tr>
+              <tr class="row-hover">
+                <td class="px-3 py-2.5 font-600 text-surface-900 text-xs">P-022</td>
+                <td class="px-3 py-2.5 text-slate-600">Café soluble Nescafé 200g</td>
+                <td class="px-3 py-2.5 text-center font-500">24</td>
+                <td class="px-3 py-2.5 text-right text-slate-500">1 800</td>
+                <td class="px-3 py-2.5 text-right font-600 text-surface-900">43 200</td>
+                <td class="px-3 py-2.5 text-center">
+                  <button onclick="this.closest('tr').remove();recalcTotal()" class="text-slate-300 hover:text-red-400 transition text-base leading-none">✕</button>
+                </td>
+              </tr>
+            </tbody>
+            <tfoot>
+              <tr class="bg-brand-500 text-white">
+                <td colspan="4" class="px-3 py-2.5 text-right font-700 text-sm">TOTAL COMMANDE</td>
+                <td id="total-cmd" class="px-3 py-2.5 text-right font-display font-700">74 400 F</td>
+                <td></td>
+              </tr>
+            </tfoot>
+          </table>
+          <p id="msg-vide" class="hidden text-center text-xs text-slate-400 py-4">Aucun article ajouté</p>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Footer actions -->
+    <div class="flex gap-3 px-6 py-4 border-t border-surface-100 shrink-0">
+      <button onclick="closeModal('modal-commande')"
+        class="flex-1 py-2.5 bg-brand-500 hover:bg-brand-600 text-white rounded-xl text-sm font-600 transition-colors">
+        Enregistrer la commande
+      </button>
+      <button onclick="closeModal('modal-commande')"
+        class="px-5 py-2.5 bg-surface-100 hover:bg-surface-200 rounded-xl text-sm font-500 transition-colors">
+        Annuler
+      </button>
+    </div>
+
+  </div>
+</div>
+
+<!-- Modal: Voir commande -->
+<div id="modal-voir" class="modal-overlay fixed inset-0 bg-black/40 z-50 items-center justify-center p-4">
+  <div class="bg-white rounded-2xl w-full max-w-lg shadow-xl">
+    <div class="flex items-center justify-between px-6 py-4 border-b border-surface-100">
+      <div>
+        <h3 class="font-display font-700 text-surface-900">Commande #CMD-2026-089</h3>
+        <p class="text-xs text-slate-400 mt-0.5">Nestlé Cameroun · 18/03/2026</p>
+      </div>
+      <button onclick="closeModal('modal-voir')" class="text-slate-400 hover:text-slate-600 text-xl leading-none">✕</button>
+    </div>
+    <div class="p-6">
+      <div class="grid grid-cols-2 gap-3 mb-4 text-sm">
+        <div class="bg-surface-50 rounded-xl p-3">
+          <p class="text-xs text-slate-400 mb-0.5">Statut</p>
+          <span class="badge-confirmed text-xs px-2.5 py-1 rounded-full font-500">Confirmée</span>
+        </div>
+        <div class="bg-surface-50 rounded-xl p-3">
+          <p class="text-xs text-slate-400 mb-0.5">Livraison prévue</p>
+          <p class="font-600 text-surface-900">20 mars 2026</p>
+        </div>
+        <div class="bg-surface-50 rounded-xl p-3">
+          <p class="text-xs text-slate-400 mb-0.5">Articles</p>
+          <p class="font-600 text-surface-900">12 articles</p>
+        </div>
+        <div class="bg-surface-50 rounded-xl p-3">
+          <p class="text-xs text-slate-400 mb-0.5">Montant total</p>
+          <p class="font-700 text-brand-600">320 000 F</p>
+        </div>
+      </div>
+      <table class="w-full text-xs border border-surface-100 rounded-xl overflow-hidden">
+        <thead class="bg-surface-50">
+          <tr>
+            <th class="px-3 py-2 text-left text-slate-400 font-600">Article</th>
+            <th class="px-3 py-2 text-center text-slate-400 font-600">Qté</th>
+            <th class="px-3 py-2 text-right text-slate-400 font-600">Montant</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-surface-100">
+          <tr><td class="px-3 py-2">Lait concentré 410g</td><td class="px-3 py-2 text-center">48</td><td class="px-3 py-2 text-right">31 200 F</td></tr>
+          <tr><td class="px-3 py-2">Café soluble 200g</td><td class="px-3 py-2 text-center">24</td><td class="px-3 py-2 text-right">43 200 F</td></tr>
+          <tr><td class="px-3 py-2">Chocolat en poudre 500g</td><td class="px-3 py-2 text-center">36</td><td class="px-3 py-2 text-right">54 000 F</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="flex gap-2 px-6 pb-5">
+      <button onclick="closeModal('modal-voir')" class="flex-1 py-2.5 bg-surface-100 hover:bg-surface-200 rounded-xl text-sm font-500 transition-colors">Fermer</button>
+      <button onclick="closeModal('modal-voir');openModal('modal-commande')" class="px-5 py-2.5 bg-brand-500 hover:bg-brand-600 text-white rounded-xl text-sm font-600 transition-colors">Modifier</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Supprimer -->
+<div id="modal-supprimer" class="modal-overlay fixed inset-0 bg-black/40 z-50 items-center justify-center p-4">
+  <div class="bg-white rounded-2xl w-full max-w-sm shadow-xl">
+    <div class="p-6 text-center">
+      <div class="w-14 h-14 rounded-full bg-red-50 flex items-center justify-center mx-auto mb-4">
+        <svg class="w-7 h-7 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+        </svg>
+      </div>
+      <h3 class="font-display font-700 text-surface-900 text-lg mb-2">Supprimer la commande ?</h3>
+      <p class="text-sm text-slate-400 mb-6">Cette action est irréversible. La commande <strong>#CMD-2026-089</strong> sera définitivement supprimée.</p>
+      <div class="flex gap-3">
+        <button onclick="closeModal('modal-supprimer')" class="flex-1 py-2.5 bg-surface-100 hover:bg-surface-200 rounded-xl text-sm font-500 transition-colors">Annuler</button>
+        <button onclick="closeModal('modal-supprimer')" class="flex-1 py-2.5 bg-red-500 hover:bg-red-600 text-white rounded-xl text-sm font-600 transition-colors">Oui, supprimer</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Section navigation
+  const sections = ['dashboard','commandes','nouvelle','reception','factures'];
+  const titles = {
+    dashboard: 'Tableau de bord',
+    commandes: 'Gérer les commandes',
+    nouvelle:  'Passer une commande',
+    reception: 'Réceptionner une commande',
+    factures:  'Factures',
+  };
+
+  function showSection(id) {
+    sections.forEach(s => {
+      document.getElementById('sec-'+s).classList.add('hidden');
+    });
+    document.getElementById('sec-'+id).classList.remove('hidden');
+    document.getElementById('page-title').textContent = titles[id] || id;
+
+    // Update nav active state
+    document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.nav-item').forEach(el => {
+      const fn = el.getAttribute('onclick');
+      if(fn && fn.includes("'"+id+"'")) el.classList.add('active');
+    });
+  }
+
+  // Modals
+  function openModal(id)  { document.getElementById(id).classList.add('open'); }
+  function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+  // Close modal on overlay click
+  document.querySelectorAll('.modal-overlay').forEach(m => {
+    m.addEventListener('click', e => { if(e.target === m) m.classList.remove('open'); });
+  });
+
+  // ── Gestion des lignes de commande ──
+  function ajouterLigne() {
+    const code    = document.getElementById('inp-code').value.trim();
+    const libelle = document.getElementById('inp-libelle').value.trim();
+    const qte     = parseInt(document.getElementById('inp-qte').value) || 0;
+    const pu      = parseFloat(document.getElementById('inp-pu').value) || 0;
+
+    if (!code || !libelle || qte <= 0 || pu <= 0) {
+      alert('Veuillez remplir tous les champs (Code, Libellé, Qté > 0, PU > 0).');
+      return;
+    }
+
+    const total = qte * pu;
+    const fmt = n => n.toLocaleString('fr-FR');
+
+    const tbody = document.getElementById('tbody-lignes');
+    const tr = document.createElement('tr');
+    tr.className = 'row-hover';
+    tr.innerHTML = `
+      <td class="px-3 py-2.5 font-600 text-surface-900 text-xs">${code}</td>
+      <td class="px-3 py-2.5 text-slate-600">${libelle}</td>
+      <td class="px-3 py-2.5 text-center font-500">${qte}</td>
+      <td class="px-3 py-2.5 text-right text-slate-500">${fmt(pu)}</td>
+      <td class="px-3 py-2.5 text-right font-600 text-surface-900">${fmt(total)}</td>
+      <td class="px-3 py-2.5 text-center">
+        <button onclick="this.closest('tr').remove();recalcTotal()" class="text-slate-300 hover:text-red-400 transition text-base leading-none">✕</button>
+      </td>`;
+    tbody.appendChild(tr);
+
+    // Reset inputs
+    ['inp-code','inp-libelle','inp-qte','inp-pu'].forEach(id => document.getElementById(id).value = '');
+    recalcTotal();
+  }
+
+  function recalcTotal() {
+    const rows = document.querySelectorAll('#tbody-lignes tr');
+    let sum = 0;
+    rows.forEach(tr => {
+      const totalCell = tr.cells[4];
+      if (totalCell) {
+        const val = parseFloat(totalCell.textContent.replace(/\s/g, '').replace(',', '.')) || 0;
+        sum += val;
+      }
+    });
+    const el = document.getElementById('total-cmd');
+    if (el) el.textContent = sum.toLocaleString('fr-FR') + ' F';
+
+    const msg = document.getElementById('msg-vide');
+    if (msg) msg.classList.toggle('hidden', rows.length > 0);
+  }
+</script>
+
+</body>
+</html>
