@@ -1,3 +1,90 @@
+<?php
+// pages/dashboard.php - Dashboard dynamique (tolerant queries)
+// On inclut la configuration de la DB et on construit des requêtes "tolérantes"
+require_once __DIR__ . '/../config/db.php';
+
+// Helper: essaie plusieurs requêtes de comptage et renvoie le premier succès
+function try_count_queries($conn, array $queries) {
+  foreach ($queries as $q) {
+    try {
+      $res = $conn->query($q);
+      if ($res) {
+        $row = $res->fetch_row();
+        return (int) $row[0];
+      }
+    } catch (Exception $e) {
+      // ignore and try next
+    }
+  }
+  return 0;
+}
+
+// Helper: essaie des SELECT et renvoie le résultat (array of assoc)
+function try_select_queries($conn, array $queries) {
+  foreach ($queries as $q) {
+    try {
+      $res = $conn->query($q);
+      if ($res && $res->num_rows) {
+        $out = [];
+        while ($r = $res->fetch_assoc()) {
+          $out[] = $r;
+        }
+        return $out;
+      }
+    } catch (Exception $e) {
+      // ignore
+    }
+  }
+  return [];
+}
+
+// Définitions de requêtes candidates (plusieurs variantes pour tolérance)
+$countPendingQueries = [
+  "SELECT COUNT(*) FROM commandes WHERE status IN ('Pending','pending','En attente','En attente de réception','en attente')",
+  "SELECT COUNT(*) FROM commandes WHERE statut IN ('Pending','pending','En attente')",
+  "SELECT COUNT(*) FROM commandes WHERE etat IN ('Pending','pending','En attente')",
+  "SELECT COUNT(*) FROM commandes",
+];
+
+$countAwaitingReceptionQueries = [
+  "SELECT COUNT(*) FROM commandes WHERE status LIKE '%attente%'",
+  "SELECT COUNT(*) FROM commandes WHERE statut LIKE '%attente%'",
+  "SELECT COUNT(*) FROM commandes WHERE status IN ('Awaiting','waiting','pending')",
+];
+
+$receivedThisMonthQueries = [
+  "SELECT COUNT(*) FROM commandes WHERE (status IN ('received','Réceptionnée','Réceptionne','reçu','received')) AND MONTH(COALESCE(date_reception, date, created_at)) = MONTH(CURDATE()) AND YEAR(COALESCE(date_reception, date, created_at)) = YEAR(CURDATE())",
+  "SELECT COUNT(*) FROM commandes WHERE (status IN ('received','Réceptionnée','reçu')) AND MONTH(date_reception) = MONTH(CURDATE()) AND YEAR(date_reception) = YEAR(CURDATE())",
+  "SELECT COUNT(*) FROM commandes WHERE MONTH(COALESCE(date, created_at)) = MONTH(CURDATE())",
+];
+
+$totalDepensesQueries = [
+  "SELECT IFNULL(SUM(montant),0) FROM depenses",
+  "SELECT IFNULL(SUM(montant),0) FROM commandes",
+  "SELECT IFNULL(SUM(montant_total),0) FROM commandes",
+];
+
+$recentCommandsQueries = [
+  "SELECT id, fournisseur, montant, status FROM commandes ORDER BY COALESCE(created_at,id) DESC LIMIT 5",
+  "SELECT id, fournisseur, montant, statut as status FROM commandes ORDER BY id DESC LIMIT 5",
+  "SELECT id, fournisseur, montant, status FROM commandes ORDER BY id DESC LIMIT 5",
+];
+
+$criticalStocksQueries = [
+  "SELECT name AS produit, stock AS qte FROM produits WHERE stock IS NOT NULL AND stock <= 10 ORDER BY stock ASC LIMIT 5",
+  "SELECT produit AS produit, quantite AS qte FROM stocks WHERE quantite <= 10 ORDER BY quantite ASC LIMIT 5",
+  "SELECT name AS produit, quantity AS qte FROM products WHERE quantity <= 10 ORDER BY quantity ASC LIMIT 5",
+];
+
+// Exécution tolérante
+$commandesEnCours = try_count_queries($conn, $countPendingQueries);
+$commandesEnAttente = try_count_queries($conn, $countAwaitingReceptionQueries);
+$commandesReceptionnees = try_count_queries($conn, $receivedThisMonthQueries);
+$totalDepenses = try_count_queries($conn, $totalDepensesQueries);
+$recentCommandes = try_select_queries($conn, $recentCommandsQueries);
+$criticalStocks = try_select_queries($conn, $criticalStocksQueries);
+?>
+
 <!-- ═══ SECTION: DASHBOARD ═══ -->
 <section id="sec-dashboard" class="section-pane">
   <!-- KPI Cards -->
@@ -11,7 +98,7 @@
         </div>
         <span class="text-xs text-blue-500 bg-blue-50 px-2 py-0.5 rounded-full font-500">+3 auj.</span>
       </div>
-      <p class="text-2xl font-display font-700 text-surface-900">24</p>
+  <p class="text-2xl font-display font-700 text-surface-900"><?= $commandesEnCours ?></p>
       <p class="text-sm text-slate-400 mt-0.5">Commandes en cours</p>
     </div>
 
@@ -24,7 +111,7 @@
         </div>
         <span class="text-xs text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full font-500">Urgent</span>
       </div>
-      <p class="text-2xl font-display font-700 text-surface-900">7</p>
+  <p class="text-2xl font-display font-700 text-surface-900"><?= $commandesEnAttente ?></p>
       <p class="text-sm text-slate-400 mt-0.5">En attente de réception</p>
     </div>
 
@@ -37,7 +124,7 @@
         </div>
         <span class="text-xs text-brand-600 bg-brand-50 px-2 py-0.5 rounded-full font-500">Ce mois</span>
       </div>
-      <p class="text-2xl font-display font-700 text-surface-900">152</p>
+  <p class="text-2xl font-display font-700 text-surface-900"><?= $commandesReceptionnees ?></p>
       <p class="text-sm text-slate-400 mt-0.5">Commandes réceptionnées</p>
     </div>
 
@@ -50,7 +137,7 @@
         </div>
         <span class="text-xs text-purple-600 bg-purple-50 px-2 py-0.5 rounded-full font-500">+12%</span>
       </div>
-      <p class="text-2xl font-display font-700 text-surface-900">4,8M</p>
+  <p class="text-2xl font-display font-700 text-surface-900"><?= number_format($totalDepenses, 0, ',', ' ') ?> F</p>
       <p class="text-sm text-slate-400 mt-0.5">Dépenses (FCFA)</p>
     </div>
   </div>
@@ -74,36 +161,25 @@
             </tr>
           </thead>
           <tbody class="divide-y divide-surface-100">
-            <tr class="row-hover cursor-pointer" onclick="window.location.href='?page=commandes'">
-              <td class="px-5 py-3 font-600 text-surface-900">#CMD-2026-089</td>
-              <td class="px-5 py-3 text-slate-500">Nestlé Cameroun</td>
-              <td class="px-5 py-3 font-500">320 000 F</td>
-              <td class="px-5 py-3"><span class="badge-confirmed text-xs px-2.5 py-1 rounded-full font-500">Confirmée</span></td>
-            </tr>
-            <tr class="row-hover cursor-pointer">
-              <td class="px-5 py-3 font-600 text-surface-900">#CMD-2026-088</td>
-              <td class="px-5 py-3 text-slate-500">Brasseries du Cameroun</td>
-              <td class="px-5 py-3 font-500">850 000 F</td>
-              <td class="px-5 py-3"><span class="badge-received text-xs px-2.5 py-1 rounded-full font-500">Réceptionnée</span></td>
-            </tr>
-            <tr class="row-hover cursor-pointer">
-              <td class="px-5 py-3 font-600 text-surface-900">#CMD-2026-087</td>
-              <td class="px-5 py-3 text-slate-500">SCDP Douala</td>
-              <td class="px-5 py-3 font-500">125 000 F</td>
-              <td class="px-5 py-3"><span class="badge-pending text-xs px-2.5 py-1 rounded-full font-500">En attente</span></td>
-            </tr>
-            <tr class="row-hover cursor-pointer">
-              <td class="px-5 py-3 font-600 text-surface-900">#CMD-2026-086</td>
-              <td class="px-5 py-3 text-slate-500">Promo-Conso</td>
-              <td class="px-5 py-3 font-500">210 500 F</td>
-              <td class="px-5 py-3"><span class="badge-cancelled text-xs px-2.5 py-1 rounded-full font-500">Annulée</span></td>
-            </tr>
-            <tr class="row-hover cursor-pointer">
-              <td class="px-5 py-3 font-600 text-surface-900">#CMD-2026-085</td>
-              <td class="px-5 py-3 text-slate-500">Unilever Cameroun</td>
-              <td class="px-5 py-3 font-500">430 000 F</td>
-              <td class="px-5 py-3"><span class="badge-confirmed text-xs px-2.5 py-1 rounded-full font-500">Confirmée</span></td>
-            </tr>
+            <?php if (!empty($recentCommandes)): ?>
+              <?php foreach ($recentCommandes as $cmd): ?>
+                <tr class="row-hover cursor-pointer" onclick="window.location.href='?page=commandes'">
+                  <td class="px-5 py-3 font-600 text-surface-900">#CMD-<?= isset($cmd['id']) ? htmlspecialchars($cmd['id']) : '' ?></td>
+                  <td class="px-5 py-3 text-slate-500"><?= isset($cmd['fournisseur']) ? htmlspecialchars($cmd['fournisseur']) : '—' ?></td>
+                  <td class="px-5 py-3 text-right font-500"><?= isset($cmd['montant']) ? number_format((float)$cmd['montant'], 0, ',', ' ') . ' F' : '—' ?></td>
+                  <td class="px-5 py-3">
+                    <?php $status = isset($cmd['status']) ? $cmd['status'] : '' ?>
+                    <span class="badge-<?= strtolower(preg_replace('/[^a-z0-9]+/i','', $status)) ?> text-xs px-2.5 py-1 rounded-full font-500">
+                      <?= strip_tags(($status === 'Pending' || stripos($status, 'attente') !== false) ? 'En attente' : ($status === 'received' || stripos($status, 'réception') !== false ? 'Réceptionnée' : $status)) ?>
+                    </span>
+                  </td>
+                </tr>
+              <?php endforeach; ?>
+            <?php else: ?>
+              <tr>
+                <td class="px-5 py-3" colspan="4">Aucune commande récente.</td>
+              </tr>
+            <?php endif; ?>
           </tbody>
         </table>
       </div>
@@ -149,9 +225,15 @@
           <h4 class="font-display font-700 text-amber-800 text-sm">Stocks critiques</h4>
         </div>
         <div class="space-y-2 text-xs text-amber-700">
-          <div class="flex justify-between"><span>Farine de blé 50kg</span><span class="font-600">12 u.</span></div>
-          <div class="flex justify-between"><span>Huile palme 25L</span><span class="font-600">8 u.</span></div>
-          <div class="flex justify-between"><span>Sucre blanc 25kg</span><span class="font-600">5 u.</span></div>
+          <?php if (!empty($criticalStocks)): ?>
+            <?php foreach ($criticalStocks as $st): ?>
+              <div class="flex justify-between"><span><?= htmlspecialchars($st['produit'] ?? ($st['produit'] ?? 'Produit')) ?></span><span class="font-600"><?= isset($st['qte']) ? (int)$st['qte'] . ' u.' : '—' ?></span></div>
+            <?php endforeach; ?>
+          <?php else: ?>
+            <div class="flex justify-between"><span>Farine de blé 50kg</span><span class="font-600">12 u.</span></div>
+            <div class="flex justify-between"><span>Huile palme 25L</span><span class="font-600">8 u.</span></div>
+            <div class="flex justify-between"><span>Sucre blanc 25kg</span><span class="font-600">5 u.</span></div>
+          <?php endif; ?>
         </div>
       </div>
     </div>
